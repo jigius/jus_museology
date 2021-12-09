@@ -87,7 +87,7 @@ class ModelExtensionModuleJusMuseology extends Model {
 					"LEFT JOIN", DB_PREFIX . "category_description cd2 ON",
 						"cp.category_id=cd2.category_id",
 					"INNER JOIN", "`". DB_PREFIX . "jus_museology_tpl` `t` ON",
-						"t.category_id=cp.category_id",
+						"t.category_id=cp.category_id AND cd1.language_id=t.language_id",
 					"WHERE",
 						"cd1.language_id=", (int)$this->config->get('config_language_id'), "AND cd2.language_id=cd1.language_id"
 				)
@@ -119,8 +119,32 @@ class ModelExtensionModuleJusMuseology extends Model {
 			}
 			$sql .= " LIMIT " . (int)$data['start'] . "," . (int)$data['limit'];
 		}
+		//dump($sql);exit;
 		$query = $this->db->query($sql);
 		return $query->rows;
+	}
+
+	/**
+	 * @param $id
+	 * @return mixed
+	 */
+	public function getTpl($id) {
+		$stmt = array(
+			"SELECT",
+				"*",
+			"FROM",
+				"`" . DB_PREFIX . "jus_museology_tpl`",
+			"WHERE",
+				"category_id=" . (int)$id
+		);
+		$res = $this->db->query(implode(" ", $stmt));
+		if (count($res->rows) === 0) {
+			throw
+				new LogicException(
+					sprintf("tpls with id=`%s` are not found", $id)
+				);
+		}
+		return $res->rows;
 	}
 
 	/**

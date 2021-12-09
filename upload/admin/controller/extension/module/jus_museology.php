@@ -3,6 +3,8 @@
  * This file is part of JusMuseology module for OC3.x
  * (c) 2021 jigius@gmail.com
  */
+use Jus\Core;
+
 class ControllerExtensionModuleJusMuseology extends Controller
 {
     private $error = array();
@@ -61,7 +63,13 @@ class ControllerExtensionModuleJusMuseology extends Controller
 			'text' => $this->language->get('heading_title'),
 			'href' => $this->url->link('extension/module/jus_museology', 'user_token=' . $this->session->data['user_token'] . '&type=module' . $url, true)
 		);
-		$data['sync'] = $this->url->link('extension/module/jus_museology/sync', 'user_token=' . $this->session->data['user_token'], true);
+		$settings = $this->model_setting_setting->getSetting('module_jus_museology');
+		$status = isset($settings['module_jus_museology_status'])?  (int)$settings['module_jus_museology_status']: 0;
+		if ($status) {
+			$data['sync'] = $this->url->link('extension/module/jus_museology/sync', 'user_token=' . $this->session->data['user_token'] . $url, true);
+		} else {
+			$data['sync'] = "";
+		}
 		$data['action'] = $this->url->link('extension/module/jus_museology', 'user_token=' . $this->session->data['user_token'] . $url, true);
 		$data['cancel'] = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module', true);
 		$data['categories'] = array();
@@ -72,7 +80,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
 			'limit' => $this->config->get('config_limit_admin')
 		);
 		$category_total = $this->model_extension_module_jus_museology->getTotalCategories();
-		if (!isset($this->error['warning']) && $category_total == 0) {
+		if (!isset($this->error['warning']) && $status && $category_total == 0) {
 			$this->load->model("catalog/category");
 			if ($this->model_catalog_category->getTotalCategories()) {
 				$this->error['warning'] = $this->language->get('text_no_categories');
@@ -88,7 +96,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
 						->url
 						->link(
 							'extension/module/jus_museology/edit',
-							'user_token=' . $this->session->data['user_token'] . '&id=' . $result['id'] . $url,
+							'user_token=' . $this->session->data['user_token'] . '&type=module&id=' . $result['id'] . $url,
 							true
 						)
 			);
@@ -129,7 +137,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
 				->url
 				->link(
 					'extension/module/jus_museology',
-					'user_token=' . $this->session->data['user_token'] . '&sort=name' . $url,
+					'user_token=' . $this->session->data['user_token'] . '&type=module&sort=name' . $url,
 					true
 				);
 		$data['sort_id'] =
@@ -137,7 +145,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
 				->url
 				->link(
 					'extension/module/jus_museology',
-					'user_token=' . $this->session->data['user_token'] . '&sort=id' . $url,
+					'user_token=' . $this->session->data['user_token'] . '&type=module&sort=id' . $url,
 					true
 				);
 		$url = '';
@@ -175,7 +183,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
         $data['header'] = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
         $data['footer'] = $this->load->controller('common/footer');
-        $this->response->setOutput($this->load->view('extension/module/jus_museology', $data));
+        $this->response->setOutput($this->load->view('extension/module/jus_museology_list', $data));
     }
 
 	public function sync() {
@@ -183,13 +191,36 @@ class ControllerExtensionModuleJusMuseology extends Controller
 		$settings = $this->model_setting_setting->getSetting('module_jus_museology');
 		$status = isset($settings['module_jus_museology_status'])?  (int)$settings['module_jus_museology_status']: 0;
 		$this->load->language('extension/module/jus_museology');
-		if ($status) {
-			$this->load->model('extension/module/jus_museology');
-			$this->model_extension_module_jus_museology->sync();
-			$this->session->data['success'] = $this->language->get('text_sync_success');
+		$msg = [];
+		if (!$status) {
+			$msg['error'] = 'text_failure_due_status';
 		} else {
-			$this->session->data['error'] = $this->language->get('text_failure_due_status');
+			$this->load->model('extension/module/jus_museology');
+			try {
+				$this->model_extension_module_jus_museology->sync();
+				$msg['success'] = 'text_sync_success';
+			} catch (LogicException $ex) {
+				$msg['error'] = $ex->getMessage();
+			}
 		}
+		$url =
+			(new Core\UrlPrn(
+				(new Core\Url())
+					->withParam(
+						'user_token',
+						$this->session->data['user_token']
+					)
+					->withParam('type', "module")
+			))
+				->with('request', $this->request)
+				->with('params', ['sort', 'order', 'page'])
+				->finished();
+		(new Core\Response())
+			->withOrigin($this->response)
+			->redirect($url->withPath('extension/module/jus_museology'), $msg);
+	}
+
+	public function edit() {
 		$url = '';
 		if (isset($this->request->get['sort'])) {
 			$url .= '&sort=' . $this->request->get['sort'];
@@ -200,25 +231,79 @@ class ControllerExtensionModuleJusMuseology extends Controller
 		if (isset($this->request->get['page'])) {
 			$url .= '&page=' . $this->request->get['page'];
 		}
-		$this->response->redirect($this->url->link('extension/module/jus_museology', 'user_token=' . $this->session->data['user_token'] . '&type=module' . $url, true));
+		try {
+			if (!isset($this->request->get['id']) || !is_numeric($this->request->get['id'])) {
+				throw new InvalidArgumentException('error_args_are_invalid');
+			}
+			$this->load->language('extension/module/jus_museology');
+			$this->load->model('extension/module/jus_museology');
+			if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
+				$this->model_extension_module_jus_museology->updateTpl($this->request->get['id'], $this->request->post);
+				$this->redirect($url, array('success' => $this->language->get('text_success')));
+			}
+			$this->document->setTitle($this->language->get('heading_edit_title'));
+			$this->load->model('extension/module/jus_museology');
+			$data['breadcrumbs'] = array();
+			$data['breadcrumbs'][] = array(
+				'text' => $this->language->get('text_home'),
+				'href' => $this->url->link('common/dashboard', 'user_token=' . $this->session->data['user_token'] . '&type=module', true)
+			);
+			$data['breadcrumbs'][] = array(
+				'text' => $this->language->get('text_extension'),
+				'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module', true)
+			);
+			$data['breadcrumbs'][] = array(
+				'text' => $this->language->get('heading_title'),
+				'href' => $this->url->link('extension/module/jus_museology', 'user_token=' . $this->session->data['user_token'] . '&type=module' . $url, true)
+			);
+			$data['action'] = $this->url->link('extension/module/jus_museology/edit', 'user_token=' . $this->session->data['user_token'] . "&type=module" . $url, true);
+			$data['cancel'] = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module' . $url, true);
+			$this->load->model('localisation/language');
+			$data['languages'] = $this->model_localisation_language->getLanguages();
+			try {
+				$data['tpl'] = $this->model_extension_module_jus_museology->getTpl($this->request->get['id']);
+			} catch (LogicException $ex) {
+				throw new InvalidArgumentException('error_args_are_invalid', 0, $ex);
+			}
+			$data['entry_title'] = $this->language->get('heading_title');
+			$data['header'] = $this->load->controller('common/header');
+			$data['column_left'] = $this->load->controller('common/column_left');
+			$data['footer'] = $this->load->controller('common/footer');
+			$this->response->setOutput($this->load->view('extension/module/jus_museology_form', $data));
+		} catch (InvalidArgumentException $ex) {
+			$this->redirect($url, ['error' => $ex->getMessage()]);
+		}
 	}
 
-    protected function validate()
-    {
+	/**
+	 * Does a redirect with an optional message is passed into a next response
+	 * @param $param
+	 * @param array $msg
+	 * @return void
+	 */
+	private function redirect($param, array $msg = []) {
+		foreach (array('error', 'warning', 'success') as $type) {
+			if (!empty($msg[$type])) {
+				$this->session->data[$type] = $msg[$type];
+				break;
+			}
+		}
+		$this->response->redirect($this->url->link('extension/module/jus_museology', 'user_token=' . $this->session->data['user_token'] . '&type=module' . $param, true));
+	}
+
+    protected function validate() {
         if (!$this->user->hasPermission('modify', 'extension/module/jus_museology')) {
             $this->error['warning'] = $this->language->get('error_permission');
         }
         return count($this->error) === 0;
     }
 
-    public function install()
-    {
+    public function install() {
         $this->load->model('extension/module/jus_museology');
 		$this->model_extension_module_jus_museology->install();
     }
 
-    public function uninstall()
-    {
+    public function uninstall() {
 		$this->load->model('extension/module/jus_museology');
 		$this->model_extension_module_jus_museology->uninstall();
     }

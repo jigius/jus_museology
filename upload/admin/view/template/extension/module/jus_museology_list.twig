@@ -3,7 +3,7 @@
   <div class="page-header">
     <div class="container-fluid">
       <div class="pull-right">
-        {% if status %}<a href="{{ sync }}" data-toggle="tooltip" title="{{ button_sync }}" class="btn btn-info"><i class="fa fa-refresh"></i></a>{% endif %}
+        {% if sync %}<a href="{{ sync }}" data-toggle="tooltip" title="{{ button_sync }}" class="btn btn-info"><i class="fa fa-refresh"></i></a>{% endif %}
         <button type="submit" form="form-module" value="save" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i></button>
         <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i></a></div>
       <h1>{{ heading_title }}</h1>
@@ -35,11 +35,11 @@
       <div class="panel-body">
         <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
           <ul class="nav nav-tabs">
-            <li class="active"><a href="#tab-general" data-toggle="tab">{{ tab_general }}</a></li>
-            <li><a href="#tab-categories" data-toggle="tab">{{ tab_categories }}</a></li>
+            <li{% if not status %} class="active"{% endif %}><a href="#tab-general" data-toggle="tab">{{ tab_general }}</a></li>
+            <li{% if status %} class="active"{% endif %}><a href="#tab-categories" data-toggle="tab">{{ tab_categories }}</a></li>
           </ul>
           <div class="tab-content">
-            <div class="tab-pane active" id="tab-general">
+            <div class="tab-pane{% if not status %} active{% endif %}" id="tab-general">
               <div class="form-group">
                 <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
                 <div class="col-sm-10">
@@ -55,7 +55,7 @@
                 </div>
               </div>
             </div>
-            <div class="tab-pane" id="tab-categories">
+            <div class="tab-pane{% if status %} active{% endif %}" id="tab-categories">
             {% if categories %}
               <div class="table-responsive">
                 <table class="table table-bordered table-hover">
