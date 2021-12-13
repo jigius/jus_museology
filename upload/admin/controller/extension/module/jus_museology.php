@@ -3,12 +3,13 @@
  * This file is part of JusMuseology module for OC3.x
  * (c) 2021 jigius@gmail.com
  */
+
 use Jus\Core;
+
+require_once DIR_SYSTEM . "/library/jus/autoloader.php";
 
 class ControllerExtensionModuleJusMuseology extends Controller
 {
-    private $error = array();
-
     public function __construct($registry)
     {
         parent::__construct($registry);
@@ -16,33 +17,64 @@ class ControllerExtensionModuleJusMuseology extends Controller
 
     public function index()
     {
-		$text =  new Core\LocalizedText($this->language);
-		$msgs =
-			(new Core\Messages\MessagesPrn(
-				new Core\Messages()
-			))
-				->with('session', $this->session)
-				->with('text', $text)
-				->finished();
+		$text =
+			(new Core\LocalizedText($this->language))
+				->withLoaded("extension/module/jus_museology");
 		$url =
 			(new Core\Url())
 				->withParam("user_token", $this->session->data['user_token'])
 				->withParam("type", "module");
-		$this->load->language('extension/module/jus_museology');
 		$this->load->model('setting/setting');
-		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
-			$this->model_setting_setting->editSetting('module_jus_museology', $this->request->post);
-			$msgs =
-				$msgs
-					->cleaned()
-					->with(
-						$text
-							->withType(Core\MessageInterface::TYPE_SUCCESS)
-							->withText("text_success")
-					);
-			$this->response->redirect($url->withPath('marketplace/extension')->url($this->url));
+		if ($this->request->server['REQUEST_METHOD'] == 'POST') {
+			$m = new Core\Messages();
+			try {
+				$this->validate();
+				$this->model_setting_setting->editSetting('module_jus_museology', $this->request->post);
+				$url = $url->withPath('marketplace/extension');
+				$m =
+					$m
+						->with(
+							Core\MessageInterface::TYPE_SUCCESS,
+							$text->fetch('text_success')
+						);
+				$sessionPrn = new Core\Messages\Stock\SessionPrn();
+			} catch (Exception $ex) {
+				$m =
+					$m
+						->with(
+							Core\MessageInterface::TYPE_ERROR,
+							$text->fetch($ex->getMessage())
+						);
+				$url =
+					(new Core\UrlPrn($url))
+						->with(
+							'params',
+							[
+								'sort' => null,
+								'order' => null,
+								'page' => null,
+								'module_jus_museology_status' => null
+							]
+						)
+						->with('request', $this->request)
+						->finished()
+						->withPath('extension/module/jus_museology');
+				$sessionPrn = new Core\Messages\SessionPrn();
+			}
+			$m
+				->printed(
+					$sessionPrn
+						->with('session', $this->session)
+				);
+			$this->response->redirect($url->url($this->url));
 		}
-		$this->document->setTitle($this->language->get('heading_title'));
+		$m =
+			(new Core\Messages\MessagesPrn(
+				new Core\Messages()
+			))
+				->with('session', $this->session)
+				->finished();
+		$this->document->setTitle($text->fetch('heading_title'));
 		$this->load->model('extension/module/jus_museology');
 		$data['breadcrumbs'] = array();
 		$data['breadcrumbs'][] = array(
@@ -55,7 +87,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
 		);
 		$url =
 			(new Core\UrlPrn($url))
-				->with('params', ['sort', 'order', 'page'])
+				->with('params', ['sort' => null, 'order' => null, 'page' => null])
 				->with('request', $this->request)
 				->finished();
 		$data['breadcrumbs'][] = array(
@@ -66,8 +98,10 @@ class ControllerExtensionModuleJusMuseology extends Controller
 		$status = isset($settings['module_jus_museology_status'])?  (int)$settings['module_jus_museology_status']: 0;
 		if ($status) {
 			$data['sync'] = $url->withPath('extension/module/jus_museology/sync')->url($this->url);
+			$data['tab_active'] = 'categories';
 		} else {
 			$data['sync'] = "";
+			$data['tab_active'] = 'general';
 		}
 		$data['action'] = $url->withPath('extension/module/jus_museology')->url($this->url);
 		$data['cancel'] = $url->withPath('marketplace/extension')->url($this->url);
@@ -78,14 +112,31 @@ class ControllerExtensionModuleJusMuseology extends Controller
 			'start' => ((isset($this->request->get['page'])? (int)$this->request->get['page']: 1) - 1) * $this->config->get('config_limit_admin'),
 			'limit' => $this->config->get('config_limit_admin')
 		);
-		$category_total = $this->model_extension_module_jus_museology->getTotalCategories();
-		if (!isset($this->error['warning']) && $status && $category_total == 0) {
-			$this->load->model("catalog/category");
-			if ($this->model_catalog_category->getTotalCategories()) {
-				$this->error['warning'] = $this->language->get('text_no_categories');
+		$data['msg'] = $m->printed(new Core\Messages\ArrayPrn());
+		try {
+			$category_total = $this->model_extension_module_jus_museology->getTotalCategories();
+			if (empty($data['msg']) && $status && $category_total == 0) {
+				$this->load->model("catalog/category");
+				if ($this->model_catalog_category->getTotalCategories()) {
+					$m =
+						$m
+							->with(
+								Core\MessageInterface::TYPE_WARNING,
+								$text->fetch('text_no_categories')
+							);
+				}
 			}
+			$results = $this->model_extension_module_jus_museology->getCategories($filter_data);
+		} catch (Exception $ex) {
+			$m =
+				$m
+					->with(
+						Core\MessageInterface::TYPE_ERROR,
+						$ex->getMessage()
+					);
+		} finally {
+			$data['msg'] = $m->printed(new Core\Messages\ArrayPrn());
 		}
-		$results = $this->model_extension_module_jus_museology->getCategories($filter_data);
 		foreach ($results as $result) {
 			$data['categories'][] = array(
 				  'id' => $result['id'],
@@ -96,28 +147,6 @@ class ControllerExtensionModuleJusMuseology extends Controller
 						->withParam('id', (int)$result['id'])
 						->url($this->url)
 			);
-		}
-		if (isset($this->error['warning'])) {
-			$data['warning'] = $this->error['warning'];
-		} elseif (isset($this->session->data['warning'])) {
-			$data['warning'] = $this->session->data['warning'];
-			unset($this->session->data['warning']);
-		} else {
-			$data['warning'] = '';
-		}
-		if (isset($this->error['error'])) {
-			$data['error'] = $this->error['error'];
-		} elseif (isset($this->session->data['error'])) {
-			$data['error'] = $this->session->data['error'];
-			unset($this->session->data['error']);
-		} else {
-			$data['error'] = '';
-		}
-		if (isset($this->session->data['success'])) {
-			$data['success'] = $this->session->data['success'];
-			unset($this->session->data['success']);
-		} else {
-			$data['success'] = '';
 		}
 		if (!isset($this->request->get['order']) || $this->request->get['order'] == "ASC") {
 			$order = "ASC";
@@ -149,8 +178,8 @@ class ControllerExtensionModuleJusMuseology extends Controller
 		$data['results'] = sprintf($this->language->get('text_pagination'), ($category_total) ? (($page - 1) * $this->config->get('config_limit_admin')) + 1 : 0, ((($page - 1) * $this->config->get('config_limit_admin')) > ($category_total - $this->config->get('config_limit_admin'))) ? $category_total : ((($page - 1) * $this->config->get('config_limit_admin')) + $this->config->get('config_limit_admin')), $category_total, ceil($category_total / $this->config->get('config_limit_admin')));
 		$data['sort'] = $sort;
 		$data['order'] = $order;
-        if (isset($this->request->post['module_jus_museology_status'])) {
-            $data['status'] = (int)$this->request->post['module_jus_museology_status'];
+        if (isset($this->request->get['module_jus_museology_status'])) {
+            $data['status'] = (int)$this->request->get['module_jus_museology_status'];
         } else {
 			$settings = $this->model_setting_setting->getSetting('module_jus_museology');
 			$data['status'] = isset($settings['module_jus_museology_status'])?  (int)$settings['module_jus_museology_status']: 0;
@@ -161,28 +190,37 @@ class ControllerExtensionModuleJusMuseology extends Controller
         $data['header'] = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
         $data['footer'] = $this->load->controller('common/footer');
-
+		(new Core\Messages\SessionPrn())
+			->with('messages', $m)
+			->with('session', $this->session)
+			->finished();
         $this->response->setOutput($this->load->view('extension/module/jus_museology_list', $data));
     }
 
 	public function sync() {
+		$text =
+			(new Core\LocalizedText($this->language))
+				->withLoaded("extension/module/jus_museology");
+		$m = new Jus\Core\Messages();
 		$this->load->model('setting/setting');
 		$settings = $this->model_setting_setting->getSetting('module_jus_museology');
 		$status = isset($settings['module_jus_museology_status'])?  (int)$settings['module_jus_museology_status']: 0;
-		$this->load->language('extension/module/jus_museology');
-		$msg = (new Core\Message($this->language, $this->session))->cleaned();
 		if (!$status) {
-			$msg = $msg->with(Core\MessageInterface::TYPE_ERROR, 'text_failure_due_status');
+			$m = $m->with(Core\MessageInterface::TYPE_ERROR, $text->fetch('text_failure_due_status'));
 		} else {
 			$this->load->model('extension/module/jus_museology');
 			try {
 				$this->model_extension_module_jus_museology->sync();
-				$msg = $msg->with(Core\MessageInterface::TYPE_SUCCESS, 'text_sync_success');
-			} catch (LogicException $ex) {
-				$msg = $msg->with(Core\MessageInterface::TYPE_ERROR, $ex->getMessage());
+				$m = $m->with(Core\MessageInterface::TYPE_SUCCESS, $text->fetch('text_sync_success'));
+			} catch (Exception $ex) {
+				$m = $m->with(Core\MessageInterface::TYPE_ERROR, $text->fetch($ex->getMessage()));
 			}
 		}
-		$msg->push();
+		$m
+			->printed(
+				(new Core\Messages\SessionPrn())
+					->with('session', $this->session)
+			);
 		$this
 			->response
 			->redirect(
@@ -196,7 +234,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
 						->withPath('extension/module/jus_museology')
 				))
 					->with('request', $this->request)
-					->with('params', ['sort', 'order', 'page'])
+					->with('params', ['sort' => null, 'order' => null, 'page' => null])
 					->finished()
 					->url($this->url)
 			);
@@ -257,27 +295,10 @@ class ControllerExtensionModuleJusMuseology extends Controller
 		}
 	}
 
-	/**
-	 * Does a redirect with an optional message is passed into a next response
-	 * @param $param
-	 * @param array $msg
-	 * @return void
-	 */
-	private function redirect($param, array $msg = []) {
-		foreach (array('error', 'warning', 'success') as $type) {
-			if (!empty($msg[$type])) {
-				$this->session->data[$type] = $msg[$type];
-				break;
-			}
-		}
-		$this->response->redirect($this->url->link('extension/module/jus_museology', 'user_token=' . $this->session->data['user_token'] . '&type=module' . $param, true));
-	}
-
     protected function validate() {
         if (!$this->user->hasPermission('modify', 'extension/module/jus_museology')) {
-            $this->error['warning'] = $this->language->get('error_permission');
+            throw new DomainException('error_permission');
         }
-        return count($this->error) === 0;
     }
 
     public function install() {

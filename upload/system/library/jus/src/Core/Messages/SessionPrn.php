@@ -1,8 +1,12 @@
 <?php
 
-use Jus\Core\Message\MessagePrn;
+namespace Jus\Core\Messages;
+
 use Jus\Core\MessageInterface;
+use Jus\Core\MessagesInterface;
 use Jus\Foundation\PrinterInterface;
+use Session;
+use LogicException;
 
 /**
  * Printer class
@@ -12,18 +16,15 @@ use Jus\Foundation\PrinterInterface;
 class SessionPrn implements PrinterInterface
 {
 	/**
-	 * @var Session
-	 */
-	private $s;
-	/**
 	 * @var array
 	 */
 	private $i;
 
-	public function __construct(Session $s)
+	public function __construct()
 	{
-		$this->s = $s;
-		$this->i = [];
+		$this->i = [
+			'containerName' => MessageInterface::CONTAINER_NAME
+		];
 	}
 
 	/**
@@ -42,23 +43,23 @@ class SessionPrn implements PrinterInterface
 	 */
 	public function finished()
 	{
-		if (
-			!isset($this->i['message']) ||
-			!$this->i['message'] instanceof MessageInterface
-		) {
-			throw new LogicException("type invalid");
+		if (!isset($this->i['session']) || is_a(!$this->i['session'], Session::class)) {
+			throw new LogicException("invalid type");
+		}
+		if (!is_string($this->i['containerName'])) {
+			throw new LogicException("invalid type");
 		}
 		$d = [
-			MessageInterface::TYPE_ERROR => [],
-			MessageInterface::TYPE_WARNING => [],
-			MessageInterface::TYPE_SUCCESS => []
+			MessageInterface::TYPE_SUCCESS => null,
+			MessageInterface::TYPE_WARNING => null,
+			MessageInterface::TYPE_ERROR => null
 		];
 		foreach (array_keys($d) as $type) {
-			if (isset($this->i[$type]) && is_array($this->i[$type])) {
+			if (!empty($this->i[$type])) {
 				$d[$type] = $this->i[$type];
 			}
 		}
-		$this->s->data[MessageInterface::CONTAINER_NAME] = $d;
+		$this->i['session']->data[MessageInterface::CONTAINER_NAME] = array_filter($d);
 	}
 
 	/**
@@ -67,7 +68,7 @@ class SessionPrn implements PrinterInterface
 	 */
 	public function blueprinted()
 	{
-		$that = new self($this->s, $this->b);
+		$that = new self();
 		$that->i = $this->i;
 		return $that;
 	}

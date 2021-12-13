@@ -15,16 +15,16 @@
     </div>
   </div>
   <div class="container-fluid">
-    {% if error %}
-    <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error }}
+    {% if msg.error %}
+    <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ msg.error }}
       <button type="button" class="close" data-dismiss="alert">×</button>
     </div>
-    {% elseif warning %}
-      <div class="alert alert-warning alert-dismissible"><i class="fa fa-check-circle"></i> {{ warning }}
+    {% elseif msg.warning %}
+      <div class="alert alert-warning alert-dismissible"><i class="fa fa-check-circle"></i> {{ msg.warning }}
         <button type="button" class="close" data-dismiss="alert">&times;</button>
       </div>
-    {% elseif success %}
-      <div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> {{ success }}
+    {% elseif msg.success %}
+      <div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> {{ msg.success }}
           <button type="button" class="close" data-dismiss="alert">&times;</button>
       </div>
     {% endif %}
@@ -35,11 +35,11 @@
       <div class="panel-body">
         <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
           <ul class="nav nav-tabs">
-            <li{% if not status %} class="active"{% endif %}><a href="#tab-general" data-toggle="tab">{{ tab_general }}</a></li>
-            <li{% if status %} class="active"{% endif %}><a href="#tab-categories" data-toggle="tab">{{ tab_categories }}</a></li>
+            <li{% if not tab_active or tab_active == 'general' %} class="active"{% endif %}><a href="#tab-general" data-toggle="tab">{{ tab_general }}</a></li>
+            <li{% if tab_active != 'general' %} class="active"{% endif %}><a href="#tab-categories" data-toggle="tab">{{ tab_categories }}</a></li>
           </ul>
           <div class="tab-content">
-            <div class="tab-pane{% if not status %} active{% endif %}" id="tab-general">
+            <div class="tab-pane{% if not tab_active or tab_active == 'general' %} active{% endif %}" id="tab-general">
               <div class="form-group">
                 <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
                 <div class="col-sm-10">
@@ -55,7 +55,7 @@
                 </div>
               </div>
             </div>
-            <div class="tab-pane{% if status %} active{% endif %}" id="tab-categories">
+            <div class="tab-pane{% if tab_active != 'general' %} active{% endif %}" id="tab-categories">
             {% if categories %}
               <div class="table-responsive">
                 <table class="table table-bordered table-hover">

@@ -2,9 +2,8 @@
 namespace Jus\Core;
 
 use Jus\Foundation\PrinterInterface;
-
-require_once __DIR__ . "/../Foundation/PrinterInterface.php";
-require_once __DIR__ . "/UrlInterface.php";
+use Request;
+use LogicException;
 
 /*
  * Url Printer
@@ -27,7 +26,9 @@ final class UrlPrn implements PrinterInterface
 	public function __construct($blank)
 	{
 		$this->blank = $blank;
-		$this->i = [];
+		$this->i = [
+			'source' => 'request'
+		];
 	}
 
 	/**
@@ -47,19 +48,21 @@ final class UrlPrn implements PrinterInterface
 	public function finished()
 	{
 		if (!isset($this->i['params']) || !is_array($this->i['params'])) {
-			throw new \LogicException("type invalid");
+			throw new LogicException("`params` is invalid");
 		}
-		if (!isset($this->i['request']) || !is_a($this->i['request'], \Request::class)) {
-			throw new \LogicException("type invalid");
+		if (!isset($this->i['request']) || !is_a($this->i['request'], Request::class)) {
+			throw new LogicException("`request` is invalid");
+		}
+		if (!in_array($this->i['source'], ['get', 'post', 'request', 'cookie', 'files', 'server'])) {
+			throw new LogicException("`source` is invalid");
 		}
 		$url = $this->blank;
 		foreach ($this->i['params'] as $name => $val) {
 			if (!is_string($name)) {
-				throw new \LogicException("type invalid");
+				throw new LogicException("invalid type - `$name` `$val`");
 			}
-			if (isset($this->i['request']->get[$name])) {
-				/* fetches a param from request's get-params */
-				$val = $this->i['request']->get[$name];
+			if (isset($this->i['request']->{$this->i['source']}[$name])) {
+				$val = $this->i['request']->{$this->i['source']}[$name];
 			} elseif (!isset($val)) {
 				continue;
 			}

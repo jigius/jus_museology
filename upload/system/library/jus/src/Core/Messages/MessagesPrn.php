@@ -1,24 +1,25 @@
 <?php
-namespace Jus\Core\Message;
+namespace Jus\Core\Messages;
 
+use Jus\Core\MessagesInterface;
 use Jus\Core\MessageInterface;
 use Jus\Foundation\PrinterInterface;
-use Session;
 use LogicException;
+use Session;
 
 /**
  * Printer class
  * Prints out Session into Message instance.
- * Returns Message instance with data restored from data, early stored into a session.
+ * Returns `Messages` instance with data restored from data, early stored into a session.
  */
-class MessagePrn implements PrinterInterface
+class MessagesPrn implements PrinterInterface
 {
 	/**
 	 * @var array
 	 */
 	private $i;
 	/**
-	 * @var MessageInterface
+	 * @var MessagesInterface
 	 */
 	private $b;
 
@@ -40,7 +41,7 @@ class MessagePrn implements PrinterInterface
 
 	/**
 	 * @inheritDoc
-	 * @returns MessageInterface
+	 * @returns MessagesInterface
 	 * @throws LogicException
 	 */
 	public function finished()
@@ -56,18 +57,14 @@ class MessagePrn implements PrinterInterface
 			$known = [
 				MessageInterface::TYPE_SUCCESS,
 				MessageInterface::TYPE_WARNING,
-				MessageInterface::TYPE_SUCCESS
+				MessageInterface::TYPE_ERROR
 			];
 			foreach ($known as $type) {
-				if (
-					isset($this->i['session']->data[MessageInterface::CONTAINER_NAME][$type]) &&
-					is_array($this->i['session']->data[MessageInterface::CONTAINER_NAME][$type])
-				) {
-					foreach ($this->i['session']->data[MessageInterface::CONTAINER_NAME][$type] as $txt) {
-						$m = $m->with($type, $txt);
-					}
+				if (!empty($this->i['session']->data[MessageInterface::CONTAINER_NAME][$type])) {
+					$m = $m->with($type, $this->i['session']->data[MessageInterface::CONTAINER_NAME][$type]);
 				}
 			}
+			unset($this->i['session']->data[MessageInterface::CONTAINER_NAME]);
 		}
 		return $m;
 	}

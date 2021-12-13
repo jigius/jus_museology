@@ -9,7 +9,7 @@ use LogicException;
  * Class Message
  * Implements an instance for messages are stored in session between requests
  */
-final class Messages implements MessageInterface
+final class Messages implements MessagesInterface
 {
 	/**
 	 * @var array
@@ -21,8 +21,7 @@ final class Messages implements MessageInterface
 	 */
 	public function __construct()
 	{
-		$this->i = [
-		];
+		$this->i = [];
 	}
 
 	/**
@@ -37,7 +36,7 @@ final class Messages implements MessageInterface
 				[
 					MessageInterface::TYPE_SUCCESS,
 					MessageInterface::TYPE_WARNING,
-					MessageInterface::TYPE_SUCCESS
+					MessageInterface::TYPE_ERROR
 				]
 			)
 		) {
@@ -72,7 +71,7 @@ final class Messages implements MessageInterface
 
 	/**
 	 * Clones the instance
-	 * @return Message
+	 * @return $this
 	 */
 	public function blueprinted()
 	{

@@ -1,8 +1,6 @@
 <?php
 namespace Jus\Core;
 
-require_once __DIR__ . "/UrlInterface.php";
-
 final class Url implements UrlInterface
 {
 	/**
