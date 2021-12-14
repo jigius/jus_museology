@@ -126,7 +126,7 @@ class ModelExtensionModuleJusMuseology extends Model {
 
 	/**
 	 * @param $id
-	 * @return mixed
+	 * @return array[]
 	 */
 	public function getTpl($id) {
 		$stmt = array(
@@ -145,6 +145,15 @@ class ModelExtensionModuleJusMuseology extends Model {
 				);
 		}
 		return $res->rows;
+	}
+
+	/**
+	 * @param $id
+	 * @param $data
+	 * @return void
+	 */
+	public function updateTpl($id, $data) {
+
 	}
 
 	/**

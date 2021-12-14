@@ -23,7 +23,8 @@ interface UrlInterface
 	public function withPath($path);
 
 	/**
-	 * @return \Url $url)
+	 * @param \Url $url
+	 * @return string
 	 */
 	public function url(\Url $url);
 }
