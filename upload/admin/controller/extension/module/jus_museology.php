@@ -5,6 +5,7 @@
  */
 
 use Jus\Core;
+use Jus\App\Museology\Template\PersistedLayer;
 
 require_once DIR_SYSTEM . "/library/jus/autoloader.php";
 
@@ -205,6 +206,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
 			$data['header'] = $this->load->controller('common/header');
 			$data['column_left'] = $this->load->controller('common/column_left');
 			$data['footer'] = $this->load->controller('common/footer');
+            $m = $m->cleaned();
 			$resp = $resp->withOutput($this->load->view('extension/module/jus_museology_list', $data));
 		}
 		$m->printed($sessionPrn->with('session', $this->session));
@@ -281,7 +283,25 @@ class ControllerExtensionModuleJusMuseology extends Controller
 			if (($this->request->server['REQUEST_METHOD'] == 'POST')) {
 				/* request handling */
 				$this->validate();
-				$this->model_extension_module_jus_museology->updateTpl($this->request->get['id'], $this->request->post);
+                try {
+                    $this
+                        ->model_extension_module_jus_museology
+                        ->updateTpl(
+                            $this->request->get['id'],
+                            $this->request->post['tpl']
+                        );
+                } catch (InvalidArgumentException $ex) {
+                    throw $ex;
+                } catch (Exception $ex) {
+                    $resp =
+                        $resp
+                            ->withUrl(
+                                $resp
+                                    ->url()
+                                    ->withParam('_preload', 1)
+                            );
+                    throw $ex;
+                }
 				$resp =
 					$resp
 						->withUrl(
@@ -340,16 +360,41 @@ class ControllerExtensionModuleJusMuseology extends Controller
 				$data['cancel'] = $url0->withPath('extension/module/jus_museology')->url($this->url);
 				$this->load->model('localisation/language');
 				$data['languages'] = $this->model_localisation_language->getLanguages();
-				$res = $this->model_extension_module_jus_museology->getTpl($this->request->get['id']);
-				if (empty($res)) {
-					throw new InvalidArgumentException('error_args_are_invalid');
-				}
-				$data['tpl'] = $res;
+                $res = $this->model_extension_module_jus_museology->template($this->request->get['id']);
+                if (empty($res)) {
+                    throw new InvalidArgumentException('error_args_are_invalid');
+                }
+                if (isset($this->request->get['_preload']) && !!$this->request->get['_preload']) {
+                    $data['tpl'] =
+                        (new PersistedLayer\Session\FormData\VanillaPrn())
+                            ->with('request', $this->request->get['tpl'])
+                            ->finished();
+                } else {
+                    $data['tpl'] =
+                        (new PersistedLayer\Db\FormData\VanillaPrn())
+                            ->with('chunk', $res)
+                            ->finished();
+                }
+                $data['breadcrumbs'][] = array(
+                    'text' =>
+                        (new PersistedLayer\Db\FormData\DescriptionPrn())
+                            ->with(
+                                'languageId',
+                                $this->config->get('config_language_id')
+                            )
+                            ->with('chunk', $res)
+                            ->finished(),
+                    'href' => $url0
+                        ->withPath('extension/module/jus_museology/edit')
+                        ->withParam('id', $this->request->get['id'])
+                        ->url($this->url)
+                );
 				$data['entry_title'] = $this->language->get('heading_title');
 				$data['header'] = $this->load->controller('common/header');
 				$data['column_left'] = $this->load->controller('common/column_left');
 				$data['footer'] = $this->load->controller('common/footer');
 				$data['msg'] = $m->printed(new Core\Messages\ArrayPrn());
+                $m = $m->cleaned();
 				$resp = $resp->withOutput($this->load->view('extension/module/jus_museology_form', $data));
 			}
 		} catch (InvalidArgumentException $ex) {

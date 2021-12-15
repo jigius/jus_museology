@@ -5,11 +5,11 @@ interface UrlInterface
 {
 	/**
 	 * @param string $name
-	 * @param $value
+	 * @param object|array[]|string|int $value
 	 * @return UrlInterface
 	 */
 	public function withParam($name, $value);
-
+    
 	/**
 	 * @param string $name
 	 * @return UrlInterface

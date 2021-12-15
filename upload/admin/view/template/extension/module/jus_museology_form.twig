@@ -14,16 +14,16 @@
     </div>
   </div>
   <div class="container-fluid">
-    {% if error %}
-      <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error }}
+    {% if msg.error %}
+      <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ msg.error }}
         <button type="button" class="close" data-dismiss="alert">×</button>
       </div>
-    {% elseif warning %}
-      <div class="alert alert-warning alert-dismissible"><i class="fa fa-check-circle"></i> {{ warning }}
+    {% elseif msg.warning %}
+      <div class="alert alert-warning alert-dismissible"><i class="fa fa-check-circle"></i> {{ msg.warning }}
         <button type="button" class="close" data-dismiss="alert">&times;</button>
       </div>
-    {% elseif success %}
-      <div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> {{ success }}
+    {% elseif msg.success %}
+      <div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> {{ msg.success }}
         <button type="button" class="close" data-dismiss="alert">&times;</button>
       </div>
     {% endif %}
@@ -35,12 +35,12 @@
         <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-category" class="form-horizontal">
           <ul class="nav nav-tabs" id="language">
             {% for language in languages %}
-              <li class="active"><a href="#language{{ language.language_id }}" data-toggle="tab"><img src="language/{{ language.code }}/{{ language.code }}.png" title="{{ language.name }}" alt="{{ language.name }}" /> {{ language.name }}</a></li>
+              <li{{ loop.first ? ' class="active"' }}><a href="#language{{ language.language_id }}" data-toggle="tab"><img src="language/{{ language.code }}/{{ language.code }}.png" title="{{ language.name }}" alt="{{ language.name }}" /> {{ language.name }}</a></li>
             {% endfor %}
           </ul>
           <div class="tab-content">
             {% for language in languages %}
-              <div class="tab-pane active" id="language{{ language.language_id }}">
+              <div class="tab-pane{{ loop.first ? ' active' }}" id="language{{ language.language_id }}">
                 <div class="form-group">
                   <label class="col-sm-2 control-label" for="input-meta-title{{ language.language_id }}">{{ entry_meta_title }}</label>
                   <div class="col-sm-10">

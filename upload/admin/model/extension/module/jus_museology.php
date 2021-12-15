@@ -128,32 +128,48 @@ class ModelExtensionModuleJusMuseology extends Model {
 	 * @param $id
 	 * @return array[]
 	 */
-	public function getTpl($id) {
+	public function template($id) {
 		$stmt = array(
 			"SELECT",
-				"*",
+				"t.*, d.name AS category_name",
 			"FROM",
-				"`" . DB_PREFIX . "jus_museology_tpl`",
-			"WHERE",
+				"`" . DB_PREFIX . "jus_museology_tpl` AS `t`",
+            "LEFT JOIN",  "`" . DB_PREFIX . "category_description` `d` USING(category_id, language_id)",
+            "WHERE",
 				"category_id=" . (int)$id
 		);
 		$res = $this->db->query(implode(" ", $stmt));
-		if (count($res->rows) === 0) {
-			throw
-				new LogicException(
-					sprintf("tpls with id=`%s` are not found", $id)
-				);
-		}
 		return $res->rows;
 	}
 
 	/**
-	 * @param $id
-	 * @param $data
+	 * @param int $id
+	 * @param array[] $data
 	 * @return void
 	 */
 	public function updateTpl($id, $data) {
-
+        throw new DomainException("foobar");
+        foreach ($data as $languageId => $f) {
+            $stmt = [
+                "UPDATE", '`' . DB_PREFIX . "jus_museology_tpl`",
+                "SET",
+                    "meta_title=" .
+                        (
+                            !empty(trim($f['meta_title']))
+                                ?  "'" . $this->db->escape($f['meta_title']) . "'"
+                                : 'NULL'
+                        ),
+                    ",meta_description=" .
+                    (
+                    !empty(trim($f['meta_description']))
+                        ?  "'" . $this->db->escape($f['meta_description']) . "'"
+                        : 'NULL'
+                    ),
+                "WHERE",
+                    "category_id=" . (int)$id, "AND language_id=" . (int)$languageId
+            ];
+            $this->db->query(implode(" ", $stmt));
+        }
 	}
 
 	/**
