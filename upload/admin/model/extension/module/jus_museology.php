@@ -148,7 +148,7 @@ class ModelExtensionModuleJusMuseology extends Model {
 	 * @return void
 	 */
 	public function updateTpl($id, $data) {
-        throw new DomainException("foobar");
+        //throw new DomainException("foobar");
         foreach ($data as $languageId => $f) {
             $stmt = [
                 "UPDATE", '`' . DB_PREFIX . "jus_museology_tpl`",

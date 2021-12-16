@@ -48,12 +48,10 @@ final class VanillaPrn implements PrinterInterface
         if (!isset($this->i['form']) || !$this->i['form'] instanceof FormInterface) {
             throw new LogicException("invalid type");
         }
-        if (isset($this->i['session']['_preload'][$this->i['form']->uid()])) {
-            $payload = $this->i['session']['_preload'][$this->i['form']->uid()];
-        } else {
-            $payload = null;
+        if (!isset($this->i['session']->data['_preload'][$this->i['form']->uid()])) {
+	        throw new DomainException('no data');
         }
-        return $payload;
+		return $this->i['session']->data['_preload'][$this->i['form']->uid()];
     }
     
     /**

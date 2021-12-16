@@ -4,8 +4,8 @@
  * (c) 2021 jigius@gmail.com
  */
 
+use Jus\App\Museology\Template as T;
 use Jus\Core;
-use Jus\App\Museology\Template\PersistedLayer;
 
 require_once DIR_SYSTEM . "/library/jus/autoloader.php";
 
@@ -274,6 +274,7 @@ class ControllerExtensionModuleJusMuseology extends Controller
 						->withParam("user_token", $this->session->data['user_token'])
 						->withParam("type", "module")
 				);
+		$form = new \Jus\App\Museology\Form();
 		$m = new Core\Messages();
 		try {
 			if (!isset($this->request->get['id']) || !is_numeric($this->request->get['id'])) {
@@ -283,6 +284,13 @@ class ControllerExtensionModuleJusMuseology extends Controller
 			if (($this->request->server['REQUEST_METHOD'] == 'POST')) {
 				/* request handling */
 				$this->validate();
+				$sform =
+					(new T\PersistedLayer\Session\SessionPrn())
+						->with('session', $this->session)
+						->with(
+							'form',
+							$form->withAction('extension/module/jus_museology/edit')
+						);
                 try {
                     $this
                         ->model_extension_module_jus_museology
@@ -290,6 +298,9 @@ class ControllerExtensionModuleJusMuseology extends Controller
                             $this->request->get['id'],
                             $this->request->post['tpl']
                         );
+					$sform
+						->with('action', 'remove')
+						->finished();
                 } catch (InvalidArgumentException $ex) {
                     throw $ex;
                 } catch (Exception $ex) {
@@ -300,6 +311,10 @@ class ControllerExtensionModuleJusMuseology extends Controller
                                     ->url()
                                     ->withParam('_preload', 1)
                             );
+					$sform
+		                ->with('action', 'push')
+		                ->with('payload', $this->request->post)
+		                ->finished();
                     throw $ex;
                 }
 				$resp =
@@ -365,19 +380,25 @@ class ControllerExtensionModuleJusMuseology extends Controller
                     throw new InvalidArgumentException('error_args_are_invalid');
                 }
                 if (isset($this->request->get['_preload']) && !!$this->request->get['_preload']) {
-                    $data['tpl'] =
-                        (new PersistedLayer\Session\FormData\VanillaPrn())
-                            ->with('request', $this->request->get['tpl'])
+                    $i =
+                        (new T\PersistedLayer\Session\FormData\VanillaPrn())
+	                        ->with('action', 'push')
+                            ->with('session', $this->session)
+	                        ->with(
+								'form',
+	                            $form->withAction('extension/module/jus_museology/edit')
+	                        )
                             ->finished();
+	                $data['tpl'] = $i['tpl'];
                 } else {
                     $data['tpl'] =
-                        (new PersistedLayer\Db\FormData\VanillaPrn())
+                        (new T\PersistedLayer\Db\FormData\VanillaPrn())
                             ->with('chunk', $res)
                             ->finished();
                 }
                 $data['breadcrumbs'][] = array(
                     'text' =>
-                        (new PersistedLayer\Db\FormData\DescriptionPrn())
+                        (new T\PersistedLayer\Db\FormData\DescriptionPrn())
                             ->with(
                                 'languageId',
                                 $this->config->get('config_language_id')

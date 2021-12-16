@@ -2,18 +2,32 @@
     
 namespace Jus\Core;
 
-interface FormInterface
-{
-    /**
-     * Appends an action for form
-     * @param string $action
-     * @return FormInterface
-     */
-    public function withAction($action);
+use Jus\Foundation as F;
 
-    /**
-     * Return a unique id of the form
-     * @return string
-     */
-    public function uid();
+interface FormInterface extends F\MediaInterface
+{
+	/**
+	 * Appends URL for form's action
+	 * @param UrlInterface $url
+	 * @return FormInterface
+	 */
+    public function withAction(UrlInterface $url);
+
+	/**
+	 * Return a unique id of the form
+	 * @param \Url $url
+	 * @return string
+	 */
+    public function uid(\Url $url);
+
+	/**
+	 * @param F\FieldsInterface $f
+	 * @return FormInterface
+	 */
+	public function withFields(F\FieldsInterface $f);
+
+	/**
+	 * @return F\FieldsInterface
+	 */
+	public function fields();
 }

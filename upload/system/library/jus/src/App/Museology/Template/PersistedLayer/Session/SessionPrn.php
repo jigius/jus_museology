@@ -50,10 +50,20 @@ final class SessionPrn implements PrinterInterface
         if (!isset($this->i['form']) || !$this->i['form'] instanceof FormInterface) {
             throw new LogicException("invalid type");
         }
-        if (!isset($this->i['session']['_preload'])) {
-            $this->i['session']['_preload'] = [];
+	    if (!isset($this->i['action']) || !in_array($this->i['action'], ['push', 'remove'])) {
+		    throw new LogicException("invalid type");
+	    }
+        if (!isset($this->i['session']->data['_preload'])) {
+            $this->i['session']->data['_preload'] = [];
         }
-        $this->i['session']['_preload'][$this->i['form']->uid()] = $this->i['payload'];
+		if ($this->i['action'] === "push") {
+			$this->i['session']->data['_preload'][$this->i['form']->uid()] = $this->i['payload'];
+		} elseif (
+			$this->i['action'] === "remove" &&
+			isset($this->i['session']->data['_preload'][$this->i['form']->uid()])
+		) {
+			unset($this->i['session']->data['_preload'][$this->i['form']->uid()]);
+		}
     }
     
     /**
