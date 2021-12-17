@@ -2,8 +2,9 @@
 
 namespace Jus\Foundation;
 
-use Iterator;
-
+/**
+ * Trivial collection of attributes
+ */
 interface AttributesInterface
 {
 	/**
@@ -20,7 +21,21 @@ interface AttributesInterface
 	public function withOut($name);
 
 	/**
-	 * @return Iterator
+	 * @param string $name
+	 * @param mixed $default
+	 * @return mixed
 	 */
-	public function iterator();
+	public function fetch($name, $default = null);
+
+	/**
+	 * @param string $name
+	 * @return bool
+	 */
+	public function has($name);
+
+	/**
+	 * @param callable $callee
+	 * @return void
+	 */
+	public function each($callee);
 }

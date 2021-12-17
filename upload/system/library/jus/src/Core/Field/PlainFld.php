@@ -1,11 +1,13 @@
 <?php
-
 namespace Jus\Core\Field;
 
-use Jus\Foundation\AttributesInterface;
-use Jus\Foundation\PrinterInterface;
+use Jus\Core\Attributes;
+use Jus\Foundation as F;
 
-class PlainFld implements PlainInterface
+/**
+ * Implements trivial field for using with form
+ */
+final class PlainFld implements PlainInterface
 {
 	/**
 	 * @var array
@@ -42,17 +44,18 @@ class PlainFld implements PlainInterface
 	/**
 	 * @inheritDoc
 	 */
-	public function printed(PrinterInterface $printer)
+	public function printed(F\PrinterInterface $printer)
 	{
-		/*$this
-			->i['attrs']
-			->each*/
+		return
+			$printer
+				->with('field', $this->i)
+				->finished();
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function withAttrs(AttributesInterface $a)
+	public function withAttrs(F\AttributesInterface $a)
 	{
 		$that = $this->blueprinted();
 		$that->i['attrs'] = $a;

@@ -2,7 +2,10 @@
 
 namespace Jus\Foundation;
 
-interface FieldsInterface extends MediaInterface
+/**
+ * Trivial collection of field
+ */
+interface FieldsInterface extends MediaInterface, AttributableInterface
 {
 	/**
 	 * Adds a field
@@ -23,4 +26,10 @@ interface FieldsInterface extends MediaInterface
 	 * @return void
 	 */
 	public function each($callee);
+
+	/**
+	 * @inheritDoc
+	 * @return AttributableInterface
+	 */
+	public function withAttrs(AttributesInterface $a);
 }
