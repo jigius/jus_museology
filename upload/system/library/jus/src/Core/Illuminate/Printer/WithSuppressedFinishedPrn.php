@@ -7,7 +7,7 @@ use Jus\Foundation\PrinterInterface;
 /**
  * Suppresses the finished-method
  */
-final class WithSuppressedFinishedPrn implements SuppressedFinishedInterface
+final class WithSuppressedFinishedPrn implements SuppressedFinishedPrinterInterface
 {
 	/**
 	 * @var PrinterInterface

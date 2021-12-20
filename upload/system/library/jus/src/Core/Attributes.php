@@ -74,6 +74,46 @@ final class Attributes implements AttributesInterface
 	}
 
 	/**
+	 * @inheritdoc
+	 */
+	public function unserialized($data)
+	{
+		if (!isset($data['coll']) || !is_array($data['coll'])) {
+			throw new LogicException("data is corrupted");
+		}
+		$that = $this->blueprinted();
+		$that->coll = [];
+		foreach ($data['coll'] as $a) {
+			if (!isset($a['key']) || is_string($a['key'])) {
+				throw new LogicException("data is corrupted");
+			}
+			if (!isset($a['val'])) {
+				throw new LogicException("data is corrupted");
+			}
+			$that = $that->with($a['key'], $a['val']);
+		}
+		return $that;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function serialized()
+	{
+		$coll = [];
+		$this
+			->each(function ($val, $key) use (&$coll) {
+				$coll[] = [
+					'key' => $key,
+					'val' => $val
+				];
+			});
+		return [
+			'coll' => $coll
+		];
+	}
+
+	/**
 	 * Clones the instance
 	 * @return Attributes
 	 */

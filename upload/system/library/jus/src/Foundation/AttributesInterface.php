@@ -5,7 +5,7 @@ namespace Jus\Foundation;
 /**
  * Trivial collection of attributes
  */
-interface AttributesInterface
+interface AttributesInterface extends SerializableInterface
 {
 	/**
 	 * @param string $name
@@ -38,4 +38,10 @@ interface AttributesInterface
 	 * @return void
 	 */
 	public function each($callee);
+
+	/**
+	 * @inheritDoc
+	 * @return AttributesInterface
+	 */
+	public function unserialized($data);
 }

@@ -2,8 +2,9 @@
 namespace Jus\Core;
 
 use Jus\Foundation as F;
+use LogicException;
 
-final class Fields implements F\FieldsInterface
+final class Fields implements FieldsInterface
 {
 	/**
 	 * @var array
@@ -35,7 +36,7 @@ final class Fields implements F\FieldsInterface
 	/**
 	 * @inheritDoc
 	 */
-	public function with(F\FieldInterface $f, $id = "")
+	public function with(FieldInterface $f, $id = "")
 	{
 		$that = $this->blueprinted();
 		$that->coll[] = [$id, $f];
@@ -78,6 +79,75 @@ final class Fields implements F\FieldsInterface
 		$that = $this->blueprinted();
 		$that->attrs = $a;
 		return $that;
+	}
+
+	/**
+	 * @inheritDoc
+	 * @throw LogicException
+	 */
+	public function unserialized($data)
+	{
+		if (
+			!isset($data['attrs']['classname']) ||
+			!class_exists($data['attrs']['classname']) ||
+			!isset($data['attrs']['state']) ||
+			!is_array($data['attrs']['state'])
+		) {
+			throw new LogicException("data is corrupted");
+		}
+		$that =
+			$this
+				->blueprinted()
+				->withAttrs(
+					(new $data['classname']())
+						->unserialized($data['state'])
+				);
+		if (!isset($data['coll']) || !is_array($data['coll'])) {
+			throw new LogicException("data is corrupted");
+		}
+		$that->coll = [];
+		foreach ($data['coll'] as $f) {
+			if (!isset($f['classname']) || !class_exists($f['classname'])) {
+				throw new LogicException("data is corrupted");
+			}
+			if (!isset($f['state']) || !is_array($f['state'])) {
+				throw new LogicException("data is corrupted");
+			}
+			if (!isset($f['id']) || !is_array($f['id'])) {
+				throw new LogicException("data is corrupted");
+			}
+			$that =
+				$that
+					->with(
+						(new $f['classname']())
+							->unserialized($f['state']),
+						$f['id']
+					);
+		}
+		return $that;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function serialized()
+	{
+		$coll = [];
+		$this
+			->each(function ($field, $id) use (&$coll) {
+				$coll[] = [
+					'classname' => get_class($field),
+					    'state' => $field->serialized(),
+					       'id' => $id
+					];
+			});
+		return [
+			'attrs' => [
+				'classname' => get_class($this->attrs),
+				'state' => $this->attrs->serialized()
+			],
+			'coll' => $coll
+		];
 	}
 
 	/**

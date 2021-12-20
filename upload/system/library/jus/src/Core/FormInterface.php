@@ -21,13 +21,13 @@ interface FormInterface extends F\MediaInterface
     public function uid(\Url $url);
 
 	/**
-	 * @param F\FieldsInterface $f
+	 * @param FieldsInterface $f
 	 * @return FormInterface
 	 */
-	public function withFields(F\FieldsInterface $f);
+	public function withFields(FieldsInterface $f);
 
 	/**
-	 * @return F\FieldsInterface
+	 * @return FieldsInterface
 	 */
 	public function fields();
 }
